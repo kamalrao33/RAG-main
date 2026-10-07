@@ -1,0 +1,27 @@
+# Virtual environments
+RAG-env/
+rag_env/
+ragenv/
+venv/
+.venv/
+env/
+
+# Python cache & compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local databases, storage, and sensitive configurations
+.env
+uploads/
+indexes/
+
+# Node dependencies
+node_modules/
+package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db

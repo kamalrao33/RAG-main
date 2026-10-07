@@ -1,0 +1,10 @@
+{
+  "name": "pdf-rag-pipeline",
+  "version": "1.0.0",
+  "description": "Enterprise PDF RAG Pipeline with Interactive Studio Dashboard",
+  "scripts": {
+    "dev": "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
+    "start": "uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "test": "pytest test_all.py -v"
+  }
+}

@@ -1,0 +1,2725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF RAG Pipeline — Enterprise Intelligence Studio</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #06090e;
+            --bg-surface: #0c121d;
+            --bg-elevated: #111a2a;
+            --bg-card: rgba(18, 28, 45, 0.65);
+            --bg-card-hover: rgba(26, 39, 62, 0.85);
+            --bg-card-solid: #141f33;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --border-highlight: rgba(139, 92, 246, 0.4);
+            
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-glow: rgba(99, 102, 241, 0.25);
+            --secondary: #8b5cf6;
+            --accent: #a855f7;
+            --accent-pink: #ec4899;
+            --gradient-brand: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+            --gradient-glow: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(217, 70, 239, 0.2));
+            --gradient-card: linear-gradient(145deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
+            
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --text-dark: #0f172a;
+            
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --warning: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.2);
+            --error: #f43f5e;
+            --error-glow: rgba(244, 63, 94, 0.2);
+            --info: #0ea5e9;
+            
+            --sidebar-width: 400px;
+            --header-height: 64px;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+            --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            
+            --font-display: 'Outfit', sans-serif;
+            --font-body: 'Plus Jakarta Sans', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            position: relative;
+        }
+
+        /* Ambient Glow Background Orbs */
+        .ambient-glow {
+            position: fixed;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(120px);
+            opacity: 0.35;
+        }
+        .ambient-glow-1 {
+            top: -15%;
+            left: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+        }
+        .ambient-glow-2 {
+            bottom: -20%;
+            right: 5%;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, #a855f7 0%, transparent 70%);
+        }
+
+        /* Layout Structure */
+        .app-shell {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            width: 100%;
+            height: 100%;
+            backdrop-filter: blur(2px);
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-glass);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            height: 100%;
+            transition: var(--transition-smooth);
+            position: relative;
+            z-index: 20;
+        }
+
+        .sidebar.collapsed {
+            margin-left: calc(-1 * var(--sidebar-width));
+        }
+
+        .sidebar-header {
+            height: var(--header-height);
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-glass);
+            background: rgba(12, 18, 29, 0.7);
+            backdrop-filter: blur(12px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .brand-badge {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-md);
+            background: var(--gradient-brand);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px var(--primary-glow);
+            color: white;
+            font-size: 1.25rem;
+            font-weight: 700;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .brand-badge::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 50%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.25), transparent);
+        }
+
+        .brand-meta {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-name {
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 40%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-sub {
+            font-size: 0.68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--primary-light);
+        }
+
+        /* Status Pill with Radar Pulse */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            font-size: 0.72rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .status-dot-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 8px;
+            height: 8px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: var(--error);
+            transition: var(--transition-smooth);
+        }
+
+        .status-dot.connected {
+            background-color: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .status-ping {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: transparent;
+            border: 1.5px solid var(--success);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .status-dot.connected + .status-ping {
+            animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes ping {
+            0% { transform: scale(0.6); opacity: 0.8; }
+            100% { transform: scale(2.2); opacity: 0; }
+        }
+
+        /* Navigation Tab Bar in Sidebar */
+        .sidebar-tabs {
+            display: flex;
+            padding: 10px 16px 0;
+            gap: 8px;
+            background: rgba(12, 18, 29, 0.4);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 12px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-muted);
+            font-family: var(--font-body);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: var(--transition-smooth);
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tab-btn.active {
+            color: var(--primary-light);
+            border-bottom-color: var(--primary);
+            background: rgba(99, 102, 241, 0.06);
+        }
+
+        .tab-badge {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 2px 6px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-family: var(--font-mono);
+        }
+
+        .tab-btn.active .tab-badge {
+            background: var(--primary-glow);
+            color: var(--primary-light);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Tab Content switching */
+        .tab-pane {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .tab-pane.active {
+            display: flex;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ── Dynamic Drag & Drop Upload Zone ── */
+        .upload-card {
+            background: var(--gradient-card);
+            border: 1.5px dashed var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 24px 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-card:hover, .upload-card.dragover {
+            border-color: var(--secondary);
+            background: rgba(139, 92, 246, 0.05);
+            box-shadow: 0 0 24px rgba(139, 92, 246, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .upload-card.dragover {
+            border-style: solid;
+            border-color: var(--primary-light);
+            scale: 1.01;
+        }
+
+        .upload-icon-circle {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+            color: var(--primary-light);
+            transition: var(--transition-smooth);
+        }
+
+        .upload-card:hover .upload-icon-circle {
+            background: var(--gradient-brand);
+            color: white;
+            transform: scale(1.08) rotate(-4deg);
+            box-shadow: 0 6px 20px var(--primary-glow);
+        }
+
+        .upload-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .upload-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .upload-types {
+            display: inline-flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .type-tag {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-glass);
+            color: var(--text-secondary);
+        }
+
+        .hidden-file-input {
+            display: none;
+        }
+
+        /* Upload Progress Area */
+        .progress-box {
+            display: none;
+            margin-top: 16px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            text-align: left;
+        }
+
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+        }
+
+        .progress-stage {
+            font-weight: 600;
+            color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .progress-percent {
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+        }
+
+        .progress-track {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--gradient-brand);
+            border-radius: 999px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* ── Document List & Filtering ── */
+        .filter-input-wrap {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 8px 12px 8px 32px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.78rem;
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .filter-input:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .filter-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .doc-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .doc-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            transition: var(--transition-smooth);
+            position: relative;
+        }
+
+        .doc-card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(139, 92, 246, 0.3);
+            transform: translateX(2px);
+        }
+
+        .doc-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .doc-type-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm);
+            background: rgba(244, 63, 94, 0.12);
+            border: 1px solid rgba(244, 63, 94, 0.25);
+            color: #fb7185;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .doc-info {
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .doc-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        .doc-badges {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 3px;
+        }
+
+        .doc-pill {
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .doc-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-smooth);
+            flex-shrink: 0;
+        }
+
+        .doc-action-btn:hover {
+            color: var(--error);
+            background: var(--error-glow);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 32px 16px;
+            border: 1.5px dashed var(--border-subtle);
+            border-radius: var(--radius-md);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ── Telemetry & System Grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 3px; height: 100%;
+            background: var(--primary);
+            opacity: 0.7;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .stat-row-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.78rem;
+        }
+
+        .stat-row-label {
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-row-value {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--primary-light);
+            background: rgba(99, 102, 241, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            max-width: 170px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Architecture Pipeline Flowcard */
+        .flow-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 14px;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.75rem;
+        }
+        .flow-step:last-child {
+            margin-bottom: 0;
+        }
+
+        .flow-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* ── Main Chat Area ── */
+        .main-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: var(--bg-base);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        .top-navbar {
+            height: var(--header-height);
+            border-bottom: 1px solid var(--border-glass);
+            background: rgba(12, 18, 29, 0.7);
+            backdrop-filter: blur(12px);
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-glass);
+            color: var(--text-secondary);
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border-color: var(--border-highlight);
+        }
+
+        .chat-title-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .canvas-title {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .canvas-sub {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pill-btn {
+            padding: 6px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: var(--font-body);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-glass);
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        .pill-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+
+        /* Chat Message Stream */
+        .chat-viewport {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            scroll-behavior: smooth;
+        }
+
+        .messages-container {
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* ── Welcome Hero Canvas ── */
+        .hero-banner {
+            max-width: 820px;
+            margin: 40px auto 0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-badge-capsule {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            color: var(--primary-light);
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: 2.75rem;
+            font-weight: 800;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            margin-bottom: 14px;
+            background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-title span {
+            background: var(--gradient-brand);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-desc {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            max-width: 620px;
+            line-height: 1.6;
+            margin-bottom: 36px;
+        }
+
+        .prompts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            text-align: left;
+        }
+
+        .prompt-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .prompt-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-highlight);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .prompt-card::after {
+            content: '';
+            position: absolute;
+            top: 0; right: 0; width: 40px; height: 40px;
+            background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.2), transparent);
+            border-top-right-radius: var(--radius-md);
+        }
+
+        .prompt-icon {
+            font-size: 1.1rem;
+        }
+
+        .prompt-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .prompt-sub {
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* ── Message Rows ── */
+        .msg-row {
+            display: flex;
+            width: 100%;
+            gap: 14px;
+            animation: msgSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes msgSlideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-row.user {
+            justify-content: flex-end;
+        }
+
+        .msg-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .msg-avatar.bot {
+            background: var(--gradient-brand);
+            color: white;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .msg-avatar.user {
+            background: #334155;
+            color: #e2e8f0;
+        }
+
+        .msg-body {
+            max-width: 82%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .msg-bubble {
+            padding: 16px 20px;
+            border-radius: var(--radius-lg);
+            font-size: 0.93rem;
+            line-height: 1.65;
+            position: relative;
+            word-break: break-word;
+        }
+
+        .msg-row.user .msg-bubble {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.25);
+        }
+
+        .msg-row.bot .msg-bubble {
+            background: var(--bg-card-solid);
+            border: 1px solid var(--border-glass);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Markdown and Citations in Answers */
+        .msg-bubble p {
+            margin-bottom: 12px;
+        }
+        .msg-bubble p:last-child {
+            margin-bottom: 0;
+        }
+        .msg-bubble strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .msg-bubble ul, .msg-bubble ol {
+            margin: 8px 0 12px 20px;
+        }
+        .msg-bubble li {
+            margin-bottom: 4px;
+        }
+        .msg-bubble code {
+            font-family: var(--font-mono);
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #f472b6;
+        }
+        .msg-bubble pre {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-glass);
+            padding: 12px;
+            border-radius: var(--radius-sm);
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .msg-bubble pre code {
+            background: none;
+            border: none;
+            padding: 0;
+            color: #e2e8f0;
+        }
+
+        /* Citation Badge in text */
+        .citation-tag {
+            background: rgba(139, 92, 246, 0.15);
+            border: 1px solid rgba(139, 92, 246, 0.35);
+            color: #c084fc;
+            padding: 1px 6px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .citation-tag:hover {
+            background: rgba(139, 92, 246, 0.3);
+            color: #ffffff;
+            border-color: #c084fc;
+            transform: scale(1.05);
+        }
+
+        /* Message Footer & Action Bar */
+        .msg-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-left: 4px;
+        }
+
+        .msg-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .msg-action-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Typing & Streaming Caret */
+        .typing-pulse {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px;
+        }
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .stream-cursor {
+            display: inline-block;
+            width: 6px;
+            height: 14px;
+            background: var(--primary-light);
+            vertical-align: middle;
+            margin-left: 2px;
+            animation: blink 0.8s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* ── Evaluation Metrics Dashboard Card ── */
+        .eval-panel {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.7));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(10px);
+        }
+
+        .eval-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 10px;
+        }
+
+        .eval-badge-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .eval-title-text {
+            font-family: var(--font-display);
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .grade-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .grade-excellent {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .grade-good {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .grade-fair {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .grade-low {
+            background: rgba(244, 63, 94, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+
+        .eval-score-hero {
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #c084fc;
+        }
+
+        .eval-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+
+        .eval-metric-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .eval-metric-top {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .eval-val {
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+        }
+
+        .eval-meter {
+            height: 4px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .eval-meter-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Timing Latency Pills */
+        .timing-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .latency-pill {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .latency-pill strong {
+            color: var(--text-primary);
+        }
+
+        /* ── Expandable Source Citations Drawer ── */
+        .sources-accordion {
+            margin-top: 6px;
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.35);
+        }
+
+        .sources-toggle {
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+            transition: var(--transition-smooth);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--primary-light);
+        }
+
+        .sources-toggle:hover {
+            background: rgba(99, 102, 241, 0.08);
+        }
+
+        .sources-toggle-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .arrow-icon {
+            transition: transform var(--transition-smooth);
+        }
+
+        .sources-accordion.open .arrow-icon {
+            transform: rotate(90deg);
+        }
+
+        .sources-tray {
+            display: none;
+            padding: 10px 14px 14px;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .sources-accordion.open .sources-tray {
+            display: flex;
+        }
+
+        .source-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .source-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .source-file-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .source-score-pill {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 2px 7px;
+            border-radius: 4px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .source-excerpt {
+            color: var(--text-secondary);
+            font-style: italic;
+            line-height: 1.5;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 10px;
+            border-radius: 4px;
+            border-left: 2px solid var(--secondary);
+        }
+
+        /* ── Input Dock Container ── */
+        .chat-dock {
+            padding: 16px 24px 24px;
+            background: rgba(12, 18, 29, 0.85);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border-glass);
+            position: relative;
+            z-index: 10;
+        }
+
+        .dock-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .input-box {
+            position: relative;
+            background: rgba(18, 28, 45, 0.8);
+            border: 1.5px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            padding: 10px 14px;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            transition: var(--transition-smooth);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .input-box:focus-within {
+            border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2), 0 8px 30px rgba(0, 0, 0, 0.35);
+            background: rgba(22, 34, 55, 0.95);
+        }
+
+        .chat-textarea {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            resize: none;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            line-height: 1.55;
+            max-height: 180px;
+            min-height: 28px;
+            padding: 6px 0;
+        }
+
+        .chat-textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .send-action-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: var(--radius-md);
+            background: var(--gradient-brand);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            flex-shrink: 0;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .send-action-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .send-action-btn:disabled {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            box-shadow: none;
+            cursor: not-allowed;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .dock-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            padding: 0 4px;
+        }
+
+        .shortcut-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .key-tag {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+        }
+
+        /* ── Modern Toast Notification System ── */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            background: var(--bg-card-solid);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            font-size: 0.82rem;
+            color: var(--text-primary);
+            animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 380px;
+        }
+
+        @keyframes toastIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast-success { border-left: 3px solid var(--success); }
+        .toast-error { border-left: 3px solid var(--error); }
+        .toast-info { border-left: 3px solid var(--primary); }
+
+        /* Confirmation Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 9000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-lg);
+            max-width: 420px;
+            width: 100%;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: modalPop 0.25s ease-out;
+        }
+
+        @keyframes modalPop {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-title {
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .modal-body {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .btn-cancel {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+        .btn-cancel:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-danger {
+            padding: 8px 16px;
+            background: var(--error);
+            border: none;
+            color: white;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            box-shadow: 0 4px 12px var(--error-glow);
+        }
+        .btn-danger:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                box-shadow: 0 0 40px rgba(0,0,0,0.6);
+            }
+            .sidebar.collapsed {
+                transform: translateX(-100%);
+                margin-left: 0;
+            }
+            .prompts-grid {
+                grid-template-columns: 1fr;
+            }
+            .hero-title {
+                font-size: 2rem;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Visual Glow Orbs -->
+    <div class="ambient-glow ambient-glow-1"></div>
+    <div class="ambient-glow ambient-glow-2"></div>
+
+    <div class="app-shell">
+        
+        <!-- ── Left Sidebar ── -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <a href="#" class="brand">
+                    <div class="brand-badge">R</div>
+                    <div class="brand-meta">
+                        <span class="brand-name">RAG Studio</span>
+                        <span class="brand-sub">Neural PDF Search</span>
+                    </div>
+                </a>
+                <div class="status-pill" id="statusPill" title="Backend Connection Status">
+                    <div class="status-dot-wrapper">
+                        <div class="status-dot" id="statusDot"></div>
+                        <div class="status-ping"></div>
+                    </div>
+                    <span id="statusText">Connecting...</span>
+                </div>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="sidebar-tabs">
+                <button class="tab-btn active" id="tabDocsBtn" onclick="switchSidebarTab('docs')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                    Documents
+                    <span class="tab-badge" id="tabDocsCount">0</span>
+                </button>
+                <button class="tab-btn" id="tabStatsBtn" onclick="switchSidebarTab('stats')">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 20V10M12 20V4M6 20v-6"/>
+                    </svg>
+                    Telemetry
+                </button>
+            </div>
+
+            <div class="sidebar-content">
+                
+                <!-- 📁 Documents Pane -->
+                <div class="tab-pane active" id="paneDocs">
+                    <!-- Dropzone -->
+                    <div>
+                        <div class="section-header">
+                            <span class="section-title">Upload & Ingest</span>
+                        </div>
+                        <div class="upload-card" id="dropzone">
+                            <div class="upload-icon-circle">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                            </div>
+                            <h3 class="upload-title">Drop PDF documents here</h3>
+                            <p class="upload-hint">or click to browse from local computer</p>
+                            <div class="upload-types">
+                                <span class="type-tag">PDF</span>
+                                <span class="type-tag">Max 100MB</span>
+                                <span class="type-tag">AVX2 Chunking</span>
+                            </div>
+                            <input type="file" id="fileInput" class="hidden-file-input" accept=".pdf">
+
+                            <!-- Progress Track -->
+                            <div class="progress-box" id="progressBox">
+                                <div class="progress-meta">
+                                    <span class="progress-stage" id="progressStage">Uploading...</span>
+                                    <span class="progress-percent" id="progressPercent">0%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Indexed Document List -->
+                    <div>
+                        <div class="section-header">
+                            <span class="section-title">Indexed Corpus</span>
+                            <span class="doc-pill" id="docSummaryBadge">0 loaded</span>
+                        </div>
+
+                        <div class="filter-input-wrap">
+                            <svg class="filter-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="docFilterInput" class="filter-input" placeholder="Filter indexed PDFs..." oninput="filterDocuments()">
+                        </div>
+
+                        <div class="doc-list" id="documentList">
+                            <div class="empty-state">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                                    <polyline points="13 2 13 9 20 9"></polyline>
+                                </svg>
+                                <span>No PDF documents indexed yet.<br>Drop a file above to begin.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ⚙️ Telemetry & System Pane -->
+                <div class="tab-pane" id="paneStats">
+                    <div>
+                        <div class="section-header">
+                            <span class="section-title">Vector & Corpus Metrics</span>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <span class="stat-label">Total Documents</span>
+                                <span class="stat-number" id="statDocs">0</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">Indexed Chunks</span>
+                                <span class="stat-number" id="statChunks">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <div class="section-header">
+                            <span class="section-title">Active Architecture</span>
+                        </div>
+                        <div class="stat-row-item">
+                            <span class="stat-row-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                                Vector Store
+                            </span>
+                            <span class="stat-row-value" id="statStore">FAISS</span>
+                        </div>
+                        <div class="stat-row-item">
+                            <span class="stat-row-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                                Embeddings
+                            </span>
+                            <span class="stat-row-value" id="statEmbed">bge-small-en-v1.5</span>
+                        </div>
+                        <div class="stat-row-item">
+                            <span class="stat-row-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                                LLM Generator
+                            </span>
+                            <span class="stat-row-value" id="statLLM">Llama-3.3-70B</span>
+                        </div>
+                        <div class="stat-row-item">
+                            <span class="stat-row-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                                Reranker Engine
+                            </span>
+                            <span class="stat-row-value">ms-marco-MiniLM</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="section-header">
+                            <span class="section-title">Pipeline Workflow</span>
+                        </div>
+                        <div class="flow-card">
+                            <div class="flow-step">
+                                <div class="flow-dot">1</div>
+                                <span>Page-level PDF text extraction (pdfplumber)</span>
+                            </div>
+                            <div class="flow-step">
+                                <div class="flow-dot">2</div>
+                                <span>Recursive semantic chunking (800 / 150)</span>
+                            </div>
+                            <div class="flow-step">
+                                <div class="flow-dot">3</div>
+                                <span>384-d dense vector index via FAISS</span>
+                            </div>
+                            <div class="flow-step">
+                                <div class="flow-dot">4</div>
+                                <span>Cross-encoder reranking (top-k = 4)</span>
+                            </div>
+                            <div class="flow-step">
+                                <div class="flow-dot">5</div>
+                                <span>Cited streaming synthesis with page tags</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- ── Main Stage Canvas ── -->
+        <main class="main-stage">
+            
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <div class="nav-left">
+                    <button class="icon-btn" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <div class="chat-title-group">
+                        <h1 class="canvas-title">Interactive Document Intelligence</h1>
+                        <span class="canvas-sub">Retrieval-Augmented Generation with Precision Page Citations</span>
+                    </div>
+                </div>
+
+                <div class="nav-actions">
+                    <button class="pill-btn" onclick="clearChatHistory()" title="Clear conversation canvas">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Clear Chat
+                    </button>
+                    <button class="pill-btn" onclick="exportConversation()" title="Export chat history as Markdown">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Export
+                    </button>
+                    <a href="/docs" target="_blank" class="pill-btn" title="FastAPI Swagger Documentation">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                            <polyline points="15 3 21 3 21 9"></polyline>
+                            <line x1="10" y1="14" x2="21" y2="3"></line>
+                        </svg>
+                        API Docs
+                    </a>
+                </div>
+            </header>
+
+            <!-- Chat Message Scroll Area -->
+            <div class="chat-viewport" id="chatViewport">
+                <div class="messages-container" id="messagesContainer">
+                    
+                    <!-- Welcome Hero State -->
+                    <div class="hero-banner" id="heroBanner">
+                        <div class="hero-badge-capsule">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 14 14"></polyline>
+                            </svg>
+                            Production RAG Pipeline Ready
+                        </div>
+                        <h2 class="hero-title">Ask Questions Across <span>Any PDF</span></h2>
+                        <p class="hero-desc">Index technical papers, contracts, or books. Get cited, hallucination-resistant answers backed by cross-encoder re-ranking.</p>
+                        
+                        <div class="prompts-grid">
+                            <div class="prompt-card" onclick="useSuggestedPrompt('Provide an executive summary of the primary thesis and findings.')">
+                                <span class="prompt-icon">📋</span>
+                                <h4 class="prompt-title">Executive Summary</h4>
+                                <p class="prompt-sub">Synthesize the core goals, methodology, and primary conclusions.</p>
+                            </div>
+                            <div class="prompt-card" onclick="useSuggestedPrompt('What are the key technical specifications and architectural decisions?')">
+                                <span class="prompt-icon">⚡</span>
+                                <h4 class="prompt-title">Technical Deep Dive</h4>
+                                <p class="prompt-sub">Extract architecture, data models, and implementation details.</p>
+                            </div>
+                            <div class="prompt-card" onclick="useSuggestedPrompt('What limitations, trade-offs, or risks are highlighted by the author?')">
+                                <span class="prompt-icon">⚖️</span>
+                                <h4 class="prompt-title">Limitations & Trade-offs</h4>
+                                <p class="prompt-sub">Identify constraints, boundary conditions, or potential weaknesses.</p>
+                            </div>
+                            <div class="prompt-card" onclick="useSuggestedPrompt('Extract all quantitative metrics, benchmarks, and experimental figures.')">
+                                <span class="prompt-icon">📊</span>
+                                <h4 class="prompt-title">Metrics & Benchmarks</h4>
+                                <p class="prompt-sub">Tabulate quantitative results and comparative figures from the text.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Floating Input Dock -->
+            <div class="chat-dock">
+                <div class="dock-inner">
+                    <div class="input-box">
+                        <textarea 
+                            id="queryInput" 
+                            class="chat-textarea" 
+                            placeholder="Ask a question about the uploaded documents (e.g. 'What are the main findings on page 4?')..." 
+                            rows="1"
+                        ></textarea>
+                        <button id="sendBtn" class="send-action-btn" onclick="submitQuery()" disabled title="Send message (Enter)">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="dock-meta-row">
+                        <div class="shortcut-badge">
+                            <span class="key-tag">Enter</span> to send &bull; <span class="key-tag">Shift + Enter</span> for new line
+                        </div>
+                        <div id="contextHint" style="font-family: var(--font-mono); font-size: 0.7rem;">
+                            FAISS Index Active
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-card">
+            <h3 class="modal-title" id="modalTitle">Delete Document</h3>
+            <p class="modal-body" id="modalMessage">Are you sure you want to remove this document and delete all of its corresponding vector embeddings from FAISS?</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn-danger" id="modalConfirmBtn">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // ── API Endpoint Configuration ──
+        const API_BASE = window.location.origin === "file://" ? "http://localhost:8000" : window.location.origin;
+        
+        let isConnected = false;
+        let isIngesting = false;
+        let isGenerating = false;
+        let indexedDocs = [];
+        let chatHistory = [];
+
+        // DOM Element Cache
+        const statusDot = document.getElementById("statusDot");
+        const statusText = document.getElementById("statusText");
+        const statusPill = document.getElementById("statusPill");
+        const dropzone = document.getElementById("dropzone");
+        const fileInput = document.getElementById("fileInput");
+        const progressBox = document.getElementById("progressBox");
+        const progressFill = document.getElementById("progressFill");
+        const progressStage = document.getElementById("progressStage");
+        const progressPercent = document.getElementById("progressPercent");
+        
+        const documentList = document.getElementById("documentList");
+        const docFilterInput = document.getElementById("docFilterInput");
+        const tabDocsCount = document.getElementById("tabDocsCount");
+        const docSummaryBadge = document.getElementById("docSummaryBadge");
+        
+        const statDocs = document.getElementById("statDocs");
+        const statChunks = document.getElementById("statChunks");
+        const statStore = document.getElementById("statStore");
+        const statEmbed = document.getElementById("statEmbed");
+        const statLLM = document.getElementById("statLLM");
+        
+        const heroBanner = document.getElementById("heroBanner");
+        const chatViewport = document.getElementById("chatViewport");
+        const messagesContainer = document.getElementById("messagesContainer");
+        const queryInput = document.getElementById("queryInput");
+        const sendBtn = document.getElementById("sendBtn");
+        const contextHint = document.getElementById("contextHint");
+
+        // ── Auto-resizing Textarea & Input Handling ──
+        queryInput.addEventListener("input", function() {
+            this.style.height = "auto";
+            this.style.height = Math.min(this.scrollHeight, 180) + "px";
+            updateSendState();
+        });
+
+        queryInput.addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (!sendBtn.disabled) {
+                    submitQuery();
+                }
+            }
+        });
+
+        function updateSendState() {
+            const hasText = queryInput.value.trim().length > 0;
+            const hasChunks = parseInt(statChunks.innerText || "0") > 0;
+            sendBtn.disabled = !hasText || !isConnected || isGenerating || !hasChunks;
+            
+            if (!hasChunks && hasText) {
+                contextHint.innerText = "⚠️ Upload at least 1 PDF first";
+                contextHint.style.color = "var(--warning)";
+            } else if (isGenerating) {
+                contextHint.innerText = "Generating response...";
+                contextHint.style.color = "var(--primary-light)";
+            } else {
+                contextHint.innerText = "FAISS Index Active";
+                contextHint.style.color = "var(--text-muted)";
+            }
+        }
+
+        // ── Tab Navigation (Sidebar) ──
+        function switchSidebarTab(tab) {
+            document.getElementById("tabDocsBtn").classList.toggle("active", tab === "docs");
+            document.getElementById("tabStatsBtn").classList.toggle("active", tab === "stats");
+            document.getElementById("paneDocs").classList.toggle("active", tab === "docs");
+            document.getElementById("paneStats").classList.toggle("active", tab === "stats");
+        }
+
+        function toggleSidebar() {
+            document.getElementById("sidebar").classList.toggle("collapsed");
+        }
+
+        function useSuggestedPrompt(prompt) {
+            queryInput.value = prompt;
+            queryInput.focus();
+            queryInput.style.height = "auto";
+            queryInput.style.height = Math.min(queryInput.scrollHeight, 180) + "px";
+            updateSendState();
+        }
+
+        // ── Notification Toast System ──
+        function showToast(message, type = "info") {
+            const container = document.getElementById("toastContainer");
+            const toast = document.createElement("div");
+            toast.className = `toast toast-${type}`;
+            
+            let iconSvg = '';
+            if (type === "success") {
+                iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
+            } else if (type === "error") {
+                iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`;
+            } else {
+                iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+            }
+            
+            toast.innerHTML = `${iconSvg}<span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = "0";
+                toast.style.transform = "translateX(100%)";
+                toast.style.transition = "all 0.3s ease";
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // ── Health Check Loop ──
+        async function verifyBackendHealth() {
+            try {
+                const res = await fetch(`${API_BASE}/health`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!isConnected) {
+                        showToast(`Connected to RAG Engine (v${data.version})`, "success");
+                    }
+                    isConnected = true;
+                    statusDot.classList.add("connected");
+                    statusText.innerText = "Online";
+                    statusPill.title = `Connected: ${data.vector_store} vector store • ${data.llm_provider} LLM`;
+                    fetchSystemMetrics();
+                    loadDocuments();
+                } else {
+                    handleDisconnect();
+                }
+            } catch (err) {
+                handleDisconnect();
+            }
+            updateSendState();
+        }
+
+        function handleDisconnect() {
+            if (isConnected) {
+                showToast("Backend connection lost", "error");
+            }
+            isConnected = false;
+            statusDot.classList.remove("connected");
+            statusText.innerText = "Offline";
+            statusPill.title = "Backend unreachable at " + API_BASE;
+        }
+
+        setInterval(verifyBackendHealth, 5000);
+        verifyBackendHealth();
+
+        // ── System Stats Telemetry ──
+        async function fetchSystemMetrics() {
+            try {
+                const res = await fetch(`${API_BASE}/stats`);
+                if (res.ok) {
+                    const data = await res.json();
+                    statDocs.innerText = data.total_documents || 0;
+                    statChunks.innerText = data.total_chunks || 0;
+                    tabDocsCount.innerText = data.total_documents || 0;
+                    
+                    if (data.vector_store) statStore.innerText = data.vector_store.toUpperCase();
+                    if (data.embedding_model) statEmbed.innerText = data.embedding_model.split('/').pop();
+                    if (data.llm) statLLM.innerText = data.llm;
+                    updateSendState();
+                }
+            } catch (e) {
+                console.error("Failed to load metrics", e);
+            }
+        }
+
+        // ── Document Ingestion (Drag & Drop + Input) ──
+        dropzone.addEventListener("click", () => fileInput.click());
+        dropzone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropzone.classList.add("dragover");
+        });
+        dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+        dropzone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("dragover");
+            const files = e.dataTransfer.files;
+            if (files.length) uploadPdfDocument(files[0]);
+        });
+        fileInput.addEventListener("change", (e) => {
+            if (e.target.files.length) uploadPdfDocument(e.target.files[0]);
+        });
+
+        async function uploadPdfDocument(file) {
+            if (!file.name.toLowerCase().endsWith(".pdf")) {
+                showToast("Only PDF documents are supported.", "error");
+                return;
+            }
+
+            if (isIngesting) {
+                showToast("An ingestion job is currently running.", "info");
+                return;
+            }
+
+            isIngesting = true;
+            progressBox.style.display = "block";
+            progressFill.style.width = "0%";
+            progressPercent.innerText = "0%";
+            progressStage.innerText = "Uploading PDF...";
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener("progress", (e) => {
+                    if (e.lengthComputable) {
+                        const pct = Math.round((e.loaded / e.total) * 100);
+                        progressFill.style.width = `${pct}%`;
+                        progressPercent.innerText = `${pct}%`;
+                        if (pct === 100) {
+                            progressStage.innerText = "Extracting text & embedding vectors...";
+                        }
+                    }
+                });
+
+                xhr.onload = async () => {
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
+                        progressStage.innerText = "Indexing Complete!";
+                        progressFill.style.width = "100%";
+                        progressPercent.innerText = "100%";
+                        showToast(`Indexed ${data.chunks} chunks across ${data.pages} pages!`, "success");
+                        
+                        setTimeout(() => {
+                            progressBox.style.display = "none";
+                            fileInput.value = "";
+                        }, 2500);
+
+                        await fetchSystemMetrics();
+                        await loadDocuments();
+                    } else {
+                        const err = JSON.parse(xhr.responseText || "{}");
+                        showToast(`Upload failed: ${err.detail || xhr.statusText}`, "error");
+                        progressBox.style.display = "none";
+                    }
+                    isIngesting = false;
+                };
+
+                xhr.onerror = () => {
+                    showToast("Network error occurred during document upload.", "error");
+                    progressBox.style.display = "none";
+                    isIngesting = false;
+                };
+
+                xhr.open("POST", `${API_BASE}/upload`);
+                xhr.send(formData);
+
+            } catch (err) {
+                console.error(err);
+                showToast("Failed to process file.", "error");
+                progressBox.style.display = "none";
+                isIngesting = false;
+            }
+        }
+
+        // ── Load & Render Documents ──
+        async function loadDocuments() {
+            try {
+                const res = await fetch(`${API_BASE}/documents`);
+                if (res.ok) {
+                    indexedDocs = await res.json();
+                    renderDocuments(indexedDocs);
+                }
+            } catch (e) {
+                console.error("Failed to load documents", e);
+            }
+        }
+
+        function filterDocuments() {
+            const query = (docFilterInput.value || "").toLowerCase().trim();
+            const filtered = indexedDocs.filter(d => d.filename.toLowerCase().includes(query));
+            renderDocuments(filtered);
+        }
+
+        function renderDocuments(docs) {
+            docSummaryBadge.innerText = `${docs.length} loaded`;
+            tabDocsCount.innerText = docs.length;
+
+            if (docs.length === 0) {
+                documentList.innerHTML = `
+                    <div class="empty-state">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                            <polyline points="13 2 13 9 20 9"></polyline>
+                        </svg>
+                        <span>No matching documents found</span>
+                    </div>
+                `;
+                return;
+            }
+
+            documentList.innerHTML = "";
+            docs.forEach(doc => {
+                const card = document.createElement("div");
+                card.className = "doc-card";
+                card.innerHTML = `
+                    <div class="doc-main">
+                        <div class="doc-type-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4 6h-4v2h4v2h-4v2h4v2H9V7h6v2z"/>
+                            </svg>
+                        </div>
+                        <div class="doc-info">
+                            <span class="doc-name" title="${doc.filename}">${doc.filename}</span>
+                            <div class="doc-badges">
+                                <span class="doc-pill">📄 ${doc.pages} pgs</span>
+                                <span class="doc-pill">🧩 ${doc.chunks} chunks</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="doc-action-btn" onclick="promptDeleteDocument('${doc.doc_id}', '${escapeHtml(doc.filename)}')" title="Delete from index">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                `;
+                documentList.appendChild(card);
+            });
+        }
+
+        // ── Delete Document Flow ──
+        let pendingDeleteDocId = null;
+        function promptDeleteDocument(docId, filename) {
+            pendingDeleteDocId = docId;
+            document.getElementById("modalMessage").innerText = `Are you sure you want to delete "${filename}" and purge its vectors from the FAISS database?`;
+            document.getElementById("confirmModal").classList.add("active");
+            document.getElementById("modalConfirmBtn").onclick = executeDelete;
+        }
+
+        function closeConfirmModal() {
+            document.getElementById("confirmModal").classList.remove("active");
+            pendingDeleteDocId = null;
+        }
+
+        async function executeDelete() {
+            if (!pendingDeleteDocId) return;
+            const docId = pendingDeleteDocId;
+            closeConfirmModal();
+
+            try {
+                const res = await fetch(`${API_BASE}/documents/${docId}`, { method: "DELETE" });
+                if (res.ok) {
+                    showToast("Document deleted successfully", "success");
+                    await fetchSystemMetrics();
+                    await loadDocuments();
+                } else {
+                    const err = await res.json();
+                    showToast(`Delete failed: ${err.detail}`, "error");
+                }
+            } catch (e) {
+                showToast("Network error deleting document", "error");
+            }
+        }
+
+        // ── Chat Submission & Real-time Stream Handling ──
+        async function submitQuery() {
+            const question = queryInput.value.trim();
+            if (!question || isGenerating) return;
+
+            isGenerating = true;
+            queryInput.value = "";
+            queryInput.style.height = "auto";
+            updateSendState();
+
+            // Hide initial hero if visible
+            if (heroBanner) {
+                heroBanner.style.display = "none";
+            }
+
+            // Append User Question
+            appendMessageRow("user", question);
+            chatHistory.push({ role: "user", content: question });
+
+            // Prepare Bot Message with streaming placeholder
+            const msgId = "bot-" + Date.now();
+            const botRow = document.createElement("div");
+            botRow.className = "msg-row bot";
+            botRow.id = `row-${msgId}`;
+            botRow.innerHTML = `
+                <div class="msg-avatar bot">AI</div>
+                <div class="msg-body">
+                    <div class="msg-bubble" id="bubble-${msgId}">
+                        <div class="typing-pulse" id="typing-${msgId}">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                        <div class="answer-stream" id="content-${msgId}"></div>
+                    </div>
+                    <div class="msg-actions" id="actions-${msgId}" style="display:none;">
+                        <button class="msg-action-btn" onclick="copyMessageAnswer('${msgId}')">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            Copy Answer
+                        </button>
+                    </div>
+                    <div id="meta-${msgId}" style="display:none; flex-direction:column; gap:10px;"></div>
+                </div>
+            `;
+            messagesContainer.appendChild(botRow);
+            scrollChatToBottom();
+
+            const typingEl = document.getElementById(`typing-${msgId}`);
+            const contentEl = document.getElementById(`content-${msgId}`);
+            const actionsEl = document.getElementById(`actions-${msgId}`);
+            const metaContainer = document.getElementById(`meta-${msgId}`);
+
+            try {
+                // Connect to FastAPI streaming endpoint
+                const res = await fetch(`${API_BASE}/query/stream`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question: question, top_k: 6 })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ detail: res.statusText }));
+                    throw new Error(err.detail || "Query execution failed");
+                }
+
+                typingEl.style.display = "none";
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let accumulatedAnswer = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    accumulatedAnswer += chunk;
+                    contentEl.innerHTML = parseMarkdownToHtml(accumulatedAnswer) + '<span class="stream-cursor"></span>';
+                    scrollChatToBottom();
+                }
+
+                // Remove cursor
+                contentEl.innerHTML = parseMarkdownToHtml(accumulatedAnswer);
+                actionsEl.style.display = "flex";
+                chatHistory.push({ role: "assistant", content: accumulatedAnswer });
+
+                // Immediately trigger non-streaming query to fetch evaluation metrics, timings, and sources
+                fetchQueryMetadata(question, metaContainer);
+
+            } catch (err) {
+                typingEl.style.display = "none";
+                contentEl.innerHTML = `<span style="color:var(--error); font-weight:600;">⚠️ Error: ${err.message}</span>`;
+                showToast(`Query failed: ${err.message}`, "error");
+            } finally {
+                isGenerating = false;
+                updateSendState();
+            }
+        }
+
+        // ── Fetch RAG Evaluation Quality & Precision Citations ──
+        async function fetchQueryMetadata(question, metaContainer) {
+            try {
+                const res = await fetch(`${API_BASE}/query`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question: question, top_k: 6 })
+                });
+
+                if (!res.ok) return;
+                const data = await res.json();
+                const ev = data.evaluation;
+
+                const getBarGradient = (val) => {
+                    if (val >= 85) return 'linear-gradient(90deg, #059669, #34d399)';
+                    if (val >= 70) return 'linear-gradient(90deg, #2563eb, #60a5fa)';
+                    if (val >= 50) return 'linear-gradient(90deg, #d97706, #fbbf24)';
+                    return 'linear-gradient(90deg, #dc2626, #f87171)';
+                };
+
+                const getGradeClass = (r) => {
+                    const str = (r || "").toLowerCase();
+                    if (str.includes("excellent")) return "grade-excellent";
+                    if (str.includes("good")) return "grade-good";
+                    if (str.includes("fair")) return "grade-fair";
+                    return "grade-low";
+                };
+
+                let evalHtml = "";
+                if (ev) {
+                    evalHtml = `
+                        <div class="eval-panel">
+                            <div class="eval-panel-header">
+                                <div class="eval-badge-group">
+                                    <span class="eval-title-text">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2">
+                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                        </svg>
+                                        Groundedness & RAG Evaluation
+                                    </span>
+                                    <span class="grade-badge ${getGradeClass(ev.rating)}">${ev.rating}</span>
+                                </div>
+                                <span class="eval-score-hero">${ev.overall_score}% Composite</span>
+                            </div>
+
+                            <div class="eval-grid">
+                                <div class="eval-metric-box" title="Absence of hallucinations against retrieved context">
+                                    <div class="eval-metric-top">
+                                        <span>🛡️ Faithfulness</span>
+                                        <span class="eval-val">${ev.faithfulness}%</span>
+                                    </div>
+                                    <div class="eval-meter">
+                                        <div class="eval-meter-fill" style="width:${ev.faithfulness}%; background:${getBarGradient(ev.faithfulness)};"></div>
+                                    </div>
+                                </div>
+                                <div class="eval-metric-box" title="Direct semantic alignment with query intention">
+                                    <div class="eval-metric-top">
+                                        <span>🎯 Answer Relevance</span>
+                                        <span class="eval-val">${ev.answer_relevance}%</span>
+                                    </div>
+                                    <div class="eval-meter">
+                                        <div class="eval-meter-fill" style="width:${ev.answer_relevance}%; background:${getBarGradient(ev.answer_relevance)};"></div>
+                                    </div>
+                                </div>
+                                <div class="eval-metric-box" title="Precision and density of retrieved FAISS chunks">
+                                    <div class="eval-metric-top">
+                                        <span>📚 Context Precision</span>
+                                        <span class="eval-val">${ev.context_relevance}%</span>
+                                    </div>
+                                    <div class="eval-meter">
+                                        <div class="eval-meter-fill" style="width:${ev.context_relevance}%; background:${getBarGradient(ev.context_relevance)};"></div>
+                                    </div>
+                                </div>
+                                <div class="eval-metric-box" title="Precision of cited page tags">
+                                    <div class="eval-metric-top">
+                                        <span>🔖 Citation Quality</span>
+                                        <span class="eval-val">${ev.citation_precision}%</span>
+                                    </div>
+                                    <div class="eval-meter">
+                                        <div class="eval-meter-fill" style="width:${ev.citation_precision}%; background:${getBarGradient(ev.citation_precision)};"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Latency Telemetry Breakdown
+                const latencyHtml = `
+                    <div class="timing-bar">
+                        <span class="latency-pill">⏱️ Total: <strong>${data.total_ms}ms</strong></span>
+                        <span class="latency-pill">🔍 Vector Search: <strong>${data.retrieval_ms}ms</strong></span>
+                        <span class="latency-pill">⚡ Cross-Rerank: <strong>${data.rerank_ms}ms</strong></span>
+                        <span class="latency-pill">🧠 Synthesis: <strong>${data.generation_ms}ms</strong></span>
+                        <span class="latency-pill">🤖 <strong>${data.model}</strong></span>
+                    </div>
+                `;
+
+                // Expandable Source Excerpts
+                let sourcesHtml = "";
+                if (data.sources && data.sources.length > 0) {
+                    const accordId = "accord-" + Date.now();
+                    sourcesHtml = `
+                        <div class="sources-accordion" id="${accordId}">
+                            <div class="sources-toggle" onclick="toggleSourcesDrawer('${accordId}')">
+                                <div class="sources-toggle-left">
+                                    <svg class="arrow-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"/>
+                                    </svg>
+                                    <span>Verified Source Chunks (${data.sources.length})</span>
+                                </div>
+                                <span style="font-size:0.72rem; color:var(--text-muted);">Click to expand excerpts</span>
+                            </div>
+                            <div class="sources-tray">
+                    `;
+
+                    data.sources.forEach((src, idx) => {
+                        sourcesHtml += `
+                            <div class="source-card">
+                                <div class="source-card-header">
+                                    <span class="source-file-title">
+                                        📄 ${escapeHtml(src.filename)} (Page ${src.page})
+                                    </span>
+                                    <span class="source-score-pill">Match: ${(src.score * 100).toFixed(1)}%</span>
+                                </div>
+                                <div class="source-excerpt">"${escapeHtml(src.text)}"</div>
+                            </div>
+                        `;
+                    });
+
+                    sourcesHtml += `
+                            </div>
+                        </div>
+                    `;
+                }
+
+                metaContainer.innerHTML = evalHtml + latencyHtml + sourcesHtml;
+                metaContainer.style.display = "flex";
+                scrollChatToBottom();
+
+            } catch (e) {
+                console.error("Failed to load query metadata", e);
+            }
+        }
+
+        function toggleSourcesDrawer(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle("open");
+        }
+
+        function copyMessageAnswer(msgId) {
+            const textEl = document.getElementById(`content-${msgId}`);
+            if (!textEl) return;
+            const rawText = textEl.innerText;
+            navigator.clipboard.writeText(rawText).then(() => {
+                showToast("Answer copied to clipboard!", "success");
+            }).catch(() => {
+                showToast("Failed to copy answer", "error");
+            });
+        }
+
+        function appendMessageRow(sender, text) {
+            const row = document.createElement("div");
+            row.className = `msg-row ${sender}`;
+            row.innerHTML = `
+                <div class="msg-body">
+                    <div class="msg-bubble">
+                        ${escapeHtml(text)}
+                    </div>
+                </div>
+                <div class="msg-avatar ${sender}">U</div>
+            `;
+            messagesContainer.appendChild(row);
+            scrollChatToBottom();
+        }
+
+        function scrollChatToBottom() {
+            chatViewport.scrollTop = chatViewport.scrollHeight;
+        }
+
+        // ── Robust Markdown & Citation Parser ──
+        function parseMarkdownToHtml(text) {
+            let s = escapeHtml(text);
+
+            // Bold
+            s = s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Italic
+            s = s.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Inline code
+            s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // Blockquotes
+            s = s.replace(/^>\s*(.*?)$/gm, '<blockquote style="border-left: 3px solid var(--secondary); padding-left: 10px; margin: 8px 0; color: var(--text-secondary);">$1</blockquote>');
+
+            // Unordered list items
+            s = s.replace(/^\s*[\-\*]\s+(.*?)$/gm, '• $1<br>');
+
+            // Numbered list items
+            s = s.replace(/^\s*(\d+)\.\s+(.*?)$/gm, '<strong>$1.</strong> $2<br>');
+
+            // Convert double linebreaks to paragraph spacing
+            s = s.replace(/\n\n/g, '<br><br>');
+            s = s.replace(/\n/g, '<br>');
+
+            // Highlight citation tokens e.g. (p. 3) or (p. 4, p. 5)
+            s = s.replace(/\((p\.\s*\d+(?:,\s*p\.\s*\d+)*)\)/g, '<span class="citation-tag">🔖 $1</span>');
+
+            return s;
+        }
+
+        function escapeHtml(string) {
+            return String(string)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // ── Action Bar Utilities ──
+        function clearChatHistory() {
+            if (chatHistory.length === 0) return;
+            messagesContainer.innerHTML = "";
+            chatHistory = [];
+            if (heroBanner) {
+                heroBanner.style.display = "flex";
+                messagesContainer.appendChild(heroBanner);
+            }
+            showToast("Conversation cleared", "info");
+        }
+
+        function exportConversation() {
+            if (chatHistory.length === 0) {
+                showToast("No conversation to export.", "info");
+                return;
+            }
+
+            let md = "# PDF RAG Studio — Conversation Export\n\n";
+            md += `*Exported on: ${new Date().toLocaleString()}*\n\n---\n\n`;
+
+            chatHistory.forEach(item => {
+                const roleName = item.role === "user" ? "### 👤 User Question" : "### 🤖 RAG Pipeline Answer";
+                md += `${roleName}\n\n${item.content}\n\n---\n\n`;
+            });
+
+            const blob = new Blob([md], { type: "text/markdown" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `rag-qa-export-${Date.now()}.md`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast("Conversation exported as Markdown", "success");
+        }
+    </script>
+</body>
+</html>
